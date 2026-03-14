@@ -172,6 +172,7 @@ export default function EventDetailPage() {
     const url = typeof window !== "undefined" ? window.location.href : ""
     const title = `[Pick-Park] ${event?.title} 주차권 추첨`
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nav = navigator as any
     if (nav.share) {
       try {
@@ -274,7 +275,7 @@ export default function EventDetailPage() {
                     </div>
                     <span className="font-medium">{winner.users?.nickname}</span>
                     <span className="text-xs text-muted-foreground ml-auto">
-                      {winner.users?.id ? (winner.users.id.substring(0, 3) + '***') : '***'}
+                      {winner.users?.id ? (String(winner.users.id).substring(0, 3) + '***') : '***'}
                     </span>
                   </li>
                 ))}

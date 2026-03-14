@@ -8,6 +8,16 @@ import { ko } from "date-fns/locale"
 import { Calendar, Users } from "lucide-react"
 import { getUserSession } from "@/lib/auth"
 
+interface RaffleEvent {
+  id: string
+  title: string
+  description: string | null
+  end_at: string
+  winner_count: number
+  status: string
+  creator_id: string
+}
+
 export default async function DashboardPage() {
   const supabase = createClient()
   const user = getUserSession()
@@ -17,7 +27,7 @@ export default async function DashboardPage() {
   }
 
   // 1. 내가 만든 이벤트 가져오기
-  const { data: createdEvents, error: err1 } = await supabase
+  const { data: rawCreatedEvents, error: err1 } = await supabase
     .from("raffle_events")
     .select("*")
     .eq("creator_id", user.id)
@@ -27,8 +37,10 @@ export default async function DashboardPage() {
     console.error("Created Events Error:", err1)
   }
 
+  const createdEvents = (rawCreatedEvents as RaffleEvent[]) || []
+
   // 대시보드 접속 시 종료 시간이 지난 active 이벤트가 있다면 자동 상태 업데이트
-  if (createdEvents) {
+  if (createdEvents.length > 0) {
     const now = new Date()
     for (const event of createdEvents) {
       if (event.status === "active" && new Date(event.end_at) <= now) {
@@ -79,7 +91,7 @@ export default async function DashboardPage() {
 
   // 데이터 가공 (타입 안전성 확보)
   const processedParticipations = (participatedEvents || []).map((p: any) => {
-    const event = Array.isArray(p.raffle_events) ? p.raffle_events[0] : p.raffle_events
+    const event = (Array.isArray(p.raffle_events) ? p.raffle_events[0] : p.raffle_events) as RaffleEvent
     if (!event) return null
     
     // 시간 지남 여부 체크하여 상태 가상 업데이트
@@ -91,7 +103,7 @@ export default async function DashboardPage() {
         status: (event.status === "active" && isOver) ? "completed" : event.status
       }
     }
-  }).filter(Boolean)
+  }).filter((item): item is any => item !== null)
 
   return (
     <div className="space-y-8">
