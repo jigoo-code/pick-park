@@ -15,7 +15,7 @@ export function getUserSession(): UserSession | null {
   try {
     const user = JSON.parse(sessionCookie)
     return user as UserSession
-  } catch (e) {
+  } catch (err) {
     return null
   }
 }

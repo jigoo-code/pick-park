@@ -21,7 +21,8 @@ interface EventData {
 }
 
 export default function EventDetailPage() {
-  const { id } = useParams()
+  const params = useParams()
+  const id = params?.id as string
   const [event, setEvent] = useState<EventData | null>(null)
   const [participantCount, setParticipantCount] = useState(0)
   const [isParticipated, setIsParticipated] = useState(false)
@@ -122,10 +123,11 @@ export default function EventDetailPage() {
             setWinners(winnerData)
           }
         }
-      } catch (error: any) {
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "알 수 없는 오류"
         toast({
           title: "데이터를 불러올 수 없습니다",
-          description: error.message,
+          description: message,
           variant: "destructive"
         })
       } finally {
@@ -159,10 +161,11 @@ export default function EventDetailPage() {
         title: "응모 완료!",
         description: "추첨에 성공적으로 참여했습니다.",
       })
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as any
       toast({
         title: "참여 실패",
-        description: error.code === '23505' ? "이미 참여한 추첨입니다." : error.message,
+        description: err.code === '23505' ? "이미 참여한 추첨입니다." : (err.message || "오류가 발생했습니다."),
         variant: "destructive"
       })
     }

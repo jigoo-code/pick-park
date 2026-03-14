@@ -6,7 +6,9 @@ import { Car, User, PlusCircle, Home, LogOut } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export function Navigation() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast()
 
   const handleLogout = async () => {

@@ -81,7 +81,7 @@ export default function CreateEventPage() {
     } catch (error: any) {
       toast({
         title: "생성 실패",
-        description: error.message || "오류가 발생했습니다.",
+        description: error instanceof Error ? error.message : "오류가 발생했습니다.",
         variant: "destructive"
       })
     } finally {

@@ -13,7 +13,6 @@ export default function MyPage() {
   const [isLoading, setIsLoading] = useState(true)
   
   const router = useRouter()
-  const { toast } = useToast()
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -30,7 +29,7 @@ export default function MyPage() {
         } else {
           router.push("/login")
         }
-      } catch (error) {
+      } catch (err) {
         router.push("/login")
       } finally {
         setIsLoading(false)

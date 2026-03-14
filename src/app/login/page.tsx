@@ -53,10 +53,11 @@ export default function LoginPage() {
         router.push("/")
         router.refresh()
       }
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "오류가 발생했습니다."
       toast({
         title: isLoginMode ? "로그인 실패" : "회원가입 실패",
-        description: error.message,
+        description: message,
         variant: "destructive",
       })
     } finally {

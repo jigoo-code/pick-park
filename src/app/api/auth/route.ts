@@ -76,7 +76,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: "잘못된 액션입니다." }, { status: 400 })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "알 수 없는 오류"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
