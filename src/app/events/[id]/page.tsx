@@ -169,12 +169,13 @@ export default function EventDetailPage() {
   }
 
   const handleShare = async () => {
-    const url = window.location.href
+    const url = typeof window !== "undefined" ? window.location.href : ""
     const title = `[Pick-Park] ${event?.title} 주차권 추첨`
     
-    if (navigator.share) {
+    const nav = navigator as any
+    if (nav.share) {
       try {
-        await navigator.share({
+        await nav.share({
           title,
           text: event?.description,
           url,
@@ -266,7 +267,7 @@ export default function EventDetailPage() {
                 당첨자 명단
               </h3>
               <ul className="space-y-2">
-                {winners.map((winner, idx) => (
+                {winners.map((winner: any, idx: number) => (
                   <li key={idx} className="p-3 bg-muted rounded-lg flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                       {idx + 1}
@@ -298,7 +299,7 @@ export default function EventDetailPage() {
             className="w-full sm:flex-1 h-12 text-lg"
             onClick={handleShare}
           >
-            {typeof navigator !== "undefined" && navigator.share ? (
+            {typeof navigator !== "undefined" && (navigator as any).share ? (
               <><Share2 className="mr-2 h-5 w-5" /> 공유하기</>
             ) : (
               <><Copy className="mr-2 h-5 w-5" /> 링크 복사</>

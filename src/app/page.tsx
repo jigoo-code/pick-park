@@ -68,7 +68,7 @@ export default async function DashboardPage() {
     .from("participants")
     .select(`
       is_winner,
-      raffle_events (*)
+      raffle_events:raffle_events (*)
     `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
@@ -77,17 +77,21 @@ export default async function DashboardPage() {
     console.error("Participated Events Error:", err2)
   }
 
-  // 참여한 이벤트 중에서도 active 이면서 종료시간이 지났다면 상태값만 화면상에서 completed로 변경 표시
-  // (실제 데이터베이스는 상세 페이지나 만든 사람 대시보드 진입 시 주로 업데이트됨)
-  if (participatedEvents) {
-    const now = new Date()
-    for (const p of participatedEvents) {
-      const ev = Array.isArray(p.raffle_events) ? p.raffle_events[0] : p.raffle_events
-      if (ev && ev.status === "active" && new Date(ev.end_at) <= now) {
-        ev.status = "completed"
+  // 데이터 가공 (타입 안전성 확보)
+  const processedParticipations = (participatedEvents || []).map((p: any) => {
+    const event = Array.isArray(p.raffle_events) ? p.raffle_events[0] : p.raffle_events
+    if (!event) return null
+    
+    // 시간 지남 여부 체크하여 상태 가상 업데이트
+    const isOver = new Date(event.end_at) <= new Date()
+    return {
+      ...p,
+      raffle_events: {
+        ...event,
+        status: (event.status === "active" && isOver) ? "completed" : event.status
       }
     }
-  }
+  }).filter(Boolean)
 
   return (
     <div className="space-y-8">
@@ -149,11 +153,10 @@ export default async function DashboardPage() {
         {/* Section: 내가 참여한 추첨 */}
         <section>
           <h2 className="text-xl font-semibold mb-4">내가 참여한 추첨</h2>
-          {participatedEvents && participatedEvents.length > 0 ? (
+          {processedParticipations.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {participatedEvents.map((participation: any) => {
-                const event = Array.isArray(participation.raffle_events) ? participation.raffle_events[0] : participation.raffle_events
-                if (!event) return null
+              {processedParticipations.map((participation: any) => {
+                const event = participation.raffle_events
                 return (
                   <Card key={event.id} className="flex flex-col">
                     <CardHeader>
