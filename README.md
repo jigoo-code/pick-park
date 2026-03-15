@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pick-Park 프로젝트
 
-## Getting Started
+이 프로젝트는 Next.js 기반의 웹 애플리케이션입니다. 사용자 인증, 이벤트 생성 및 관리, 드로우 참여 등의 기능을 제공합니다.
 
-First, run the development server:
+## 시작하기
+
+개발 서버를 실행하려면 다음 명령을 사용하세요:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 [http://localhost:3000](http://localhost:3000) 로 접속하여 결과를 확인할 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 주요 기능
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **사용자 인증**: Supabase를 이용한 안전한 사용자 인증 시스템.
+- **이벤트 생성 및 관리**: 관리자가 이벤트를 생성하고 관리할 수 있습니다.
+- **드로우 참여**: 사용자가 이벤트 드로우에 참여할 수 있습니다.
+- **마이페이지**: 사용자 정보를 확인하고 관리할 수 있는 페이지.
 
-## Learn More
+## 프로젝트 구조
 
-To learn more about Next.js, take a look at the following resources:
+- `src/app`: Next.js 페이지 및 API 라우트.
+- `src/components`: 재사용 가능한 UI 컴포넌트.
+- `src/lib`: 유틸리티 함수 및 Supabase 클라이언트/서버 설정.
+- `src/hooks`: 커스텀 React 훅.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 더 알아보기
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Supabase Documentation](https://supabase.com/docs)
 
-## Deploy on Vercel
+## 배포
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+이 프로젝트는 Vercel 플랫폼에 배포할 수 있습니다.

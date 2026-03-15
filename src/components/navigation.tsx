@@ -26,9 +26,9 @@ export function Navigation() {
     <>
       {/* PC: 상단 내비게이션 바 */}
       <nav className="hidden md:flex fixed top-0 w-full h-16 border-b bg-background/95 backdrop-blur z-50 items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-          <Car className="h-6 w-6" />
-          <span>Pick-Park</span>
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-lig">
+          <Car className="h-6 w-6" fill="currentColor" />
+          <span>미사일 핵심 기술 연구소 4팀</span>
         </Link>
         <div className="flex items-center gap-6 text-sm font-medium">
           <Link href="/" className="hover:text-primary transition-colors">홈</Link>
@@ -44,9 +44,9 @@ export function Navigation() {
       {/* Mobile: 상단 헤더 */}
       <header className="md:hidden fixed top-0 w-full h-14 border-b bg-background/95 backdrop-blur z-50 flex items-center justify-between px-4">
         <div className="w-8"></div> {/* 좌측 여백(정렬용) */}
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-          <Car className="h-5 w-5" />
-          <span>Pick-Park</span>
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-lig">
+          <Car className="h-5 w-5" fill="currentColor" />
+          <span className="text-sm">미사일 핵심 기술 연구소 4팀</span>
         </Link>
         <button onClick={handleLogout} className="w-8 flex justify-end text-muted-foreground hover:text-destructive transition-colors" aria-label="로그아웃">
           <LogOut className="h-5 w-5" />

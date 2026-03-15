@@ -16,7 +16,8 @@ CREATE TABLE public.users (
   id TEXT PRIMARY KEY,
   password TEXT NOT NULL, -- 비밀번호 암호화 저장
   nickname TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+  profile_image_url TEXT, -- 프로필 이미지 URL 추가
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone(\'utc\'::text, now()) NOT NULL
 );
 
 -- 2. 추첨 이벤트 (Raffle_Events) 테이블 생성
@@ -38,6 +39,7 @@ CREATE TABLE public.participants (
   event_id UUID REFERENCES public.raffle_events(id) ON DELETE CASCADE NOT NULL,
   user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
   is_winner BOOLEAN DEFAULT false,
+  is_business_trip BOOLEAN DEFAULT false, -- 출장자 여부 컬럼 추가
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   UNIQUE(event_id, user_id)
 );

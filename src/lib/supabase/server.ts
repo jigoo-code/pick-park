@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 
 export function createClient() {
@@ -30,6 +31,20 @@ export function createClient() {
             // user sessions.
           }
         },
+      },
+    }
+  )
+}
+
+// 서버 전용: Service Role Key를 사용하여 RLS를 우회하는 어드민 클라이언트
+export function createAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
     }
   )

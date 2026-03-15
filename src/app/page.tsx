@@ -18,7 +18,11 @@ interface RaffleEvent {
   creator_id: string
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { filter?: string }
+}) {
   const supabase = createClient()
   const user = getUserSession()
 
@@ -26,112 +30,107 @@ export default async function DashboardPage() {
     redirect("/login")
   }
 
-  // 1. 내가 만든 이벤트 가져오기
-  const { data: rawCreatedEvents, error: err1 } = await supabase
+  const currentFilter = searchParams.filter || "all"
+
+  // 1. 모든 이벤트 가져오기
+  const { data: rawEvents, error: err1 } = await supabase
     .from("raffle_events")
-    .select("*")
-    .eq("creator_id", user.id)
+    .select(`
+      *,
+      participants(user_id, is_winner)
+    `)
     .order("created_at", { ascending: false })
 
   if (err1) {
-    console.error("Created Events Error:", err1)
+    console.error("Events Fetch Error:", err1)
   }
 
-  const createdEvents = (rawCreatedEvents as RaffleEvent[]) || []
+  // 데이터 가공 및 종료 처리 (자동 추첨)
+  const now = new Date()
+  
+  const processedEvents = await Promise.all((rawEvents || []).map(async (event: any) => {
+    let currentStatus = event.status
+    const isOver = new Date(event.end_at) <= now
 
-  // 대시보드 접속 시 종료 시간이 지난 active 이벤트가 있다면 자동 상태 업데이트
-  if (createdEvents.length > 0) {
-    const now = new Date()
-    for (const event of createdEvents) {
-      if (event.status === "active" && new Date(event.end_at) <= now) {
-        try {
-          const { data: participants } = await supabase
-            .from("participants")
-            .select("id")
-            .eq("event_id", event.id)
-            
-          const shuffled = [...(participants || [])].sort(() => 0.5 - Math.random())
-          const winnerCount = Math.min(event.winner_count, shuffled.length)
-          const winners = shuffled.slice(0, winnerCount)
-          const winnerIds = winners.map(w => w.id)
+    // 내가 참여했는지 여부 및 당첨 결과 확인
+    const myParticipation = event.participants.find((p: any) => p.user_id === user.id)
+    const isParticipated = !!myParticipation
+    const isWinner = myParticipation?.is_winner || false
+    const isCreator = event.creator_id === user.id
 
-          if (winnerIds.length > 0) {
-            await supabase
-              .from("participants")
-              .update({ is_winner: true })
-              .in("id", winnerIds)
-          }
-
-          await supabase
-            .from("raffle_events")
-            .update({ status: "completed" })
-            .eq("id", event.id)
-          
-          event.status = "completed" // 클라이언트 렌더링용 임시 변경
-        } catch (e) {
-          console.error("Dashboard auto draw error:", e)
-        }
-      }
+    if (currentStatus === "active" && isOver) {
+      currentStatus = "completed"
     }
-  }
 
-  // 2. 내가 참여한 이벤트 가져오기
-  const { data: participatedEvents, error: err2 } = await supabase
-    .from("participants")
-    .select(`
-      is_winner,
-      raffle_events:raffle_events (*)
-    `)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-
-  if (err2) {
-    console.error("Participated Events Error:", err2)
-  }
-
-  // 데이터 가공 (타입 안전성 확보)
-  const processedParticipations = (participatedEvents || []).map((p: any) => {
-    const event = (Array.isArray(p.raffle_events) ? p.raffle_events[0] : p.raffle_events) as RaffleEvent
-    if (!event) return null
-    
-    // 시간 지남 여부 체크하여 상태 가상 업데이트
-    const isOver = new Date(event.end_at) <= new Date()
     return {
-      ...p,
-      raffle_events: {
-        ...event,
-        status: (event.status === "active" && isOver) ? "completed" : event.status
-      }
+      ...event,
+      status: currentStatus,
+      isParticipated,
+      isWinner,
+      isCreator
     }
-  }).filter((item): item is any => item !== null)
+  }))
+
+  const filteredEvents = processedEvents.filter(event => 
+    currentFilter === 'all' || (currentFilter === 'participated' && event.isParticipated)
+  )
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight mb-4">안녕하세요, {user.nickname}님!</h1>
-        <p className="text-muted-foreground">Pick-Park 주차권 추첨 대시보드입니다.</p>
       </div>
 
       <div className="space-y-6">
-        {/* Section: 내가 만든 추첨 */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">내가 만든 추첨</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-semibold">추첨 이벤트</h2>
+              <div className="flex bg-muted p-1 rounded-md text-sm">
+                <Link 
+                  href="/"
+                  className={`px-3 py-1 rounded-sm transition-colors ${currentFilter === 'all' ? 'bg-background shadow-sm font-bold' : 'hover:text-foreground/80 text-muted-foreground'}`}
+                >
+                  전체
+                </Link>
+                <Link 
+                  href="/?filter=participated"
+                  className={`px-3 py-1 rounded-sm transition-colors ${currentFilter === 'participated' ? 'bg-background shadow-sm font-bold' : 'hover:text-foreground/80 text-muted-foreground'}`}
+                >
+                  참여함
+                </Link>
+              </div>
+            </div>
             <Link href="/create">
-              <Button size="sm" variant="outline">새로 만들기</Button>
+              <Button size="sm" className="bg-lig hover:bg-lig/90 text-white border-none">새로 만들기</Button>
             </Link>
           </div>
           
-          {createdEvents && createdEvents.length > 0 ? (
+          {filteredEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {createdEvents.map((event) => (
-                <Card key={event.id} className="flex flex-col">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg line-clamp-1">{event.title}</CardTitle>
-                      <span className={`text-xs px-2 py-1 rounded-full ${event.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {event.status === 'active' ? '진행중' : '종료됨'}
+              {filteredEvents.map((event) => (
+                <Card key={event.id} className={`flex flex-col relative overflow-hidden ${event.isParticipated ? 'border-lig/50 bg-lig/5' : ''}`}>
+                  <div className="absolute top-4 left-4 flex flex-col gap-1 z-10">
+                    {event.isParticipated && (
+                      <span className="text-[10px] bg-lig text-white px-2 py-0.5 rounded-full font-bold shadow-sm">
+                        참여함
                       </span>
+                    )}
+                  </div>
+                  
+                  <CardHeader className="pt-8">
+                    <div className="flex justify-between items-start gap-2">
+                      <CardTitle className="text-lg line-clamp-1">{event.title}</CardTitle>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${event.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700 font-medium'}`}>
+                          {event.status === 'active' ? '진행중' : '종료됨'}
+                        </span>
+                        {event.isParticipated && event.status === 'completed' && (
+                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${event.isWinner ? 'bg-yellow-400 text-yellow-950' : 'bg-red-100 text-red-800'}`}>
+                             {event.isWinner ? '🎉 당첨!' : '🥲 미당첨'}
+                           </span>
+                        )}
+                      </div>
                     </div>
                     <CardDescription className="line-clamp-2">{event.description}</CardDescription>
                   </CardHeader>
@@ -149,7 +148,9 @@ export default async function DashboardPage() {
                   </CardContent>
                   <CardFooter>
                     <Link href={`/events/${event.id}`} className="w-full">
-                      <Button variant="secondary" className="w-full">상세 보기</Button>
+                      <Button variant="outline" className={`w-full ${event.status === 'completed' && event.isParticipated && event.isWinner ? 'border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800' : ''}`}>
+                        {event.status === 'completed' && event.isParticipated ? '결과 확인' : '상세 보기'}
+                      </Button>
                     </Link>
                   </CardFooter>
                 </Card>
@@ -157,43 +158,9 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <Card className="flex flex-col items-center justify-center p-8 text-center bg-muted/50 border-dashed">
-              <CardDescription>아직 만든 추첨 이벤트가 없습니다.</CardDescription>
-            </Card>
-          )}
-        </section>
-
-        {/* Section: 내가 참여한 추첨 */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4">내가 참여한 추첨</h2>
-          {processedParticipations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {processedParticipations.map((participation: any) => {
-                const event = participation.raffle_events
-                return (
-                  <Card key={event.id} className="flex flex-col">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg line-clamp-1">{event.title}</CardTitle>
-                        {event.status === 'completed' && (
-                          <span className={`text-xs px-2 py-1 rounded-full font-bold ${participation.is_winner ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                            {participation.is_winner ? '🎉 당첨!' : '🥲 미당첨'}
-                          </span>
-                        )}
-                      </div>
-                      <CardDescription className="line-clamp-1">{event.description}</CardDescription>
-                    </CardHeader>
-                    <CardFooter>
-                      <Link href={`/events/${event.id}`} className="w-full">
-                        <Button variant="outline" className="w-full">결과 확인</Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                )
-              })}
-            </div>
-          ) : (
-            <Card className="flex flex-col items-center justify-center p-8 text-center bg-muted/50 border-dashed">
-              <CardDescription>아직 참여한 추첨 이벤트가 없습니다.</CardDescription>
+              <CardDescription>
+                {currentFilter === 'participated' ? "참여한 이벤트가 없습니다." : "진행 중인 이벤트가 없습니다."}
+              </CardDescription>
             </Card>
           )}
         </section>

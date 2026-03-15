@@ -53,10 +53,6 @@ export default function CreateEventPage() {
       if (validItems.length === 0) {
         throw new Error("최소 1개 이상의 추첨 항목을 입력해주세요.")
       }
-      
-      if (winnerCount > validItems.length) {
-        throw new Error("당첨 인원 수가 추첨 항목 수보다 클 수 없습니다.")
-      }
 
       const { data, error } = await supabase
         .from("raffle_events")
@@ -187,7 +183,11 @@ export default function CreateEventPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-lg font-bold bg-lig hover:bg-lig/90 text-white shadow-md active:scale-95 transition-all" 
+              disabled={isLoading}
+            >
               {isLoading ? "생성 중..." : "이벤트 생성 완료"}
             </Button>
           </CardFooter>

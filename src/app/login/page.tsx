@@ -72,8 +72,8 @@ export default function LoginPage() {
           <div className="flex justify-center mb-2">
             <Car className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">Pick-Park</CardTitle>
-          <CardDescription>주차권 추첨 시스템에 오신 것을 환영합니다</CardDescription>
+          <CardTitle className="text-2xl font-bold text-center leading-tight">미사일 핵심 기술 연구소 4팀</CardTitle>
+          <CardDescription>추첨 시스템에 오신 것을 환영합니다</CardDescription>
         </CardHeader>
         <form onSubmit={handleAuth}>
           <CardContent className="space-y-4">

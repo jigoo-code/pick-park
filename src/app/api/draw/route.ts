@@ -31,21 +31,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Already completed" }, { status: 400 })
     }
 
-    // 2. 참여자 리스트 가져오기
+    // 2. 참여자 리스트 가져오기 (출장 여부 포함)
     const { data: participants, error: participantsError } = await supabase
       .from("participants")
-      .select("id, user_id")
+      .select("id, user_id, is_business_trip")
       .eq("event_id", eventId)
 
-    if (participantsError) {
-      throw participantsError
+    if (participantsError || !participants) {
+      throw participantsError || new Error("No participants")
     }
 
-    // 3. 무작위 추첨 알고리즘 (Fisher-Yates Shuffle 활용)
-    const shuffled = [...(participants || [])].sort(() => 0.5 - Math.random())
-    const winnerCount = Math.min(event.winner_count, shuffled.length)
-    const winners = shuffled.slice(0, winnerCount)
-    const winnerIds = winners.map(w => w.id)
+    // 3. 출장자 우선 추첨 알고리즘
+    const businessTripPool = participants.filter(p => p.is_business_trip)
+    const regularPool = participants.filter(p => !p.is_business_trip)
+    
+    let winnerIds: string[] = []
+    const totalWinnerLimit = event.winner_count
+
+    if (businessTripPool.length <= totalWinnerLimit) {
+      // 출장자가 당첨 인원보다 적거나 같으면 전원 당첨
+      winnerIds = businessTripPool.map(p => p.id)
+      
+      // 남은 자리에 대해 일반 응모자 추첨
+      const remainingSlots = totalWinnerLimit - winnerIds.length
+      if (remainingSlots > 0 && regularPool.length > 0) {
+        const shuffledRegulars = [...regularPool].sort(() => 0.5 - Math.random())
+        const additionalWinners = shuffledRegulars.slice(0, Math.min(remainingSlots, regularPool.length))
+        winnerIds = [...winnerIds, ...additionalWinners.map(w => w.id)]
+      }
+    } else {
+      // 출장자가 당첨 인원보다 많으면 출장자 중에서만 추첨
+      const shuffledBusiness = [...businessTripPool].sort(() => 0.5 - Math.random())
+      const luckyBusinessWinners = shuffledBusiness.slice(0, totalWinnerLimit)
+      winnerIds = luckyBusinessWinners.map(w => w.id)
+    }
 
     // 4. 당첨자 업데이트
     if (winnerIds.length > 0) {

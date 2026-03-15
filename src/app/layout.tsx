@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Pick-Park - 주차권 추첨 앱",
-  description: "모바일에서 간편하게 즐기는 주차권 추첨 시스템",
+  title: "미사일 핵심 기술 연구소 4팀",
+  description: "간편하게 즐기는 추첨 시스템",
 };
 
 export default function RootLayout({
