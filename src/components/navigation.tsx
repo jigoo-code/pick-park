@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Car, User, PlusCircle, Home, LogOut } from "lucide-react"
+import { CarFront, User, PlusCircle, Home, LogOut } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export function Navigation() {
@@ -27,7 +27,7 @@ export function Navigation() {
       {/* PC: 상단 내비게이션 바 */}
       <nav className="hidden md:flex fixed top-0 w-full h-16 border-b bg-background/95 backdrop-blur z-50 items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-lig">
-          <Car className="h-6 w-6" fill="currentColor" />
+          <CarFront className="h-6 w-6" />
           <span>미사일 핵심 기술 연구소 4팀</span>
         </Link>
         <div className="flex items-center gap-6 text-sm font-medium">
@@ -45,7 +45,7 @@ export function Navigation() {
       <header className="md:hidden fixed top-0 w-full h-14 border-b bg-background/95 backdrop-blur z-50 flex items-center justify-between px-4">
         <div className="w-8"></div> {/* 좌측 여백(정렬용) */}
         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-lig">
-          <Car className="h-5 w-5" fill="currentColor" />
+          <CarFront className="h-5 w-5" />
           <span className="text-sm">미사일 핵심 기술 연구소 4팀</span>
         </Link>
         <button onClick={handleLogout} className="w-8 flex justify-end text-muted-foreground hover:text-destructive transition-colors" aria-label="로그아웃">
