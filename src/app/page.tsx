@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +24,7 @@ interface RaffleEvent {
   isCreator?: boolean
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const [user, setUser] = useState<any>(null)
   const [events, setEvents] = useState<RaffleEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -135,7 +135,7 @@ export default function DashboardPage() {
 
       // 서버 최신 데이터 반영을 위해 리렌더링 유도
       router.refresh()
-      window.location.reload() // 완전한 상태 갱신을 위해 임시로 병행
+      window.location.reload()
     } catch (err: any) {
       toast({
         title: "오류 발생",
@@ -167,7 +167,7 @@ export default function DashboardPage() {
 
       // 서버 최신 데이터 반영을 위해 리렌더링 유도
       router.refresh()
-      window.location.reload() // 완전한 상태 갱신을 위해 임시로 병행
+      window.location.reload()
     } catch (err: any) {
       toast({
         title: "오류 발생",
@@ -314,5 +314,13 @@ export default function DashboardPage() {
         </section>
       </div>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20">대시보드 불러오는 중...</div>}>
+      <DashboardContent />
+    </Suspense>
   )
 }
