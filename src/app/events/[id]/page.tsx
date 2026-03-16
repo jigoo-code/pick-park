@@ -588,7 +588,7 @@ export default function EventDetailPage() {
                 htmlFor="business_trip"
                 className="text-sm font-bold text-lig cursor-pointer"
               >
-                이번 주 출장자입니다 (우선 당첨 대상)
+                출장입니다 (우선 당첨 대상)
               </label>
             </div>
           )}
