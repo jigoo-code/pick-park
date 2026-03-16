@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
-import { Calendar, Users, Trash2, Zap } from "lucide-react"
+import { Calendar, Users, Trash2, Zap, RefreshCw } from "lucide-react"
 
 interface RaffleEvent {
   id: string
@@ -133,8 +133,41 @@ export default function DashboardPage() {
         description: "이벤트가 즉시 종료되었습니다.",
       })
 
-      // 목록 상태 업데이트 (해당 이벤트만 completed로 변경)
-      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: "completed" } : e))
+      // 서버 최신 데이터 반영을 위해 리렌더링 유도
+      router.refresh()
+      window.location.reload() // 완전한 상태 갱신을 위해 임시로 병행
+    } catch (err: any) {
+      toast({
+        title: "오류 발생",
+        description: err.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleResetDraw = async (eventId: string) => {
+    if (!confirm("당첨 결과를 무효로 하고 다시 진행 상태로 변경하시겠습니까?")) return
+
+    try {
+      const res = await fetch("/api/draw", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "초기화 실패")
+      }
+
+      toast({
+        title: "초기화 완료",
+        description: "이벤트가 다시 진행 중 상태로 변경되었습니다.",
+      })
+
+      // 서버 최신 데이터 반영을 위해 리렌더링 유도
+      router.refresh()
+      window.location.reload() // 완전한 상태 갱신을 위해 임시로 병행
     } catch (err: any) {
       toast({
         title: "오류 발생",
@@ -187,15 +220,16 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredEvents.map((event) => (
                 <Card key={event.id} className={`flex flex-col relative overflow-hidden ${event.isParticipated ? 'border-lig/50 bg-lig/5' : ''}`}>
-                  <div className="absolute top-4 left-4 flex flex-col gap-1 z-10">
-                    {event.isParticipated && (
-                      <span className="text-[10px] bg-lig text-white px-2 py-0.5 rounded-full font-bold shadow-sm">
-                        참여함
-                      </span>
-                    )}
-                  </div>
-
                   <CardHeader className="pt-6">
+                    <div className="flex flex-col gap-2 mb-1">
+                      {event.isParticipated && (
+                        <div className="flex">
+                          <span className="text-[10px] bg-lig text-white px-2 py-0.5 rounded-full font-bold shadow-sm">
+                            참여함
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex justify-between items-start gap-2">
                       <CardTitle className="text-lg line-clamp-1">{event.title}</CardTitle>
                       <div className="flex flex-col items-end gap-1 shrink-0">
@@ -235,7 +269,7 @@ export default function DashboardPage() {
                     </Link>
                     {(user?.id === "system" || event.isCreator) && (
                       <div className="flex gap-1.5">
-                        {event.status === "active" && (
+                        {event.status === "active" ? (
                           <Button 
                             variant="outline" 
                             size="sm"
@@ -244,6 +278,16 @@ export default function DashboardPage() {
                             title="즉시 종료"
                           >
                             <Zap className="h-4 w-4 fill-orange-500" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleResetDraw(event.id)}
+                            className="border-blue-400 text-blue-500 hover:bg-blue-50"
+                            title="추첨 초기화"
+                          >
+                            <RefreshCw className="h-4 w-4" />
                           </Button>
                         )}
                         <Button 

@@ -6,10 +6,11 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { Share2, Copy, Users, Calendar, Trophy, User, Trash2, Zap } from "lucide-react"
+import { Share2, Copy, Users, Calendar, Trophy, User, Trash2, Zap, RefreshCw, Send } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import confetti from "canvas-confetti"
 
 interface EventData {
   id: string
@@ -78,19 +79,33 @@ export default function EventDetailPage() {
         if (eventError) throw eventError
 
         let currentStatus = eventData.status
-        // 종료 시간이 지났는데 아직 active인 경우 추첨 API 강제 실행
+        // 종료 시간이 지났는데 아직 active인 경우 추첨 API 강제 실행 (또는 drawing 중이라면 대기 후 리로드)
         if (currentStatus === "active" && new Date(eventData.end_at) <= new Date()) {
           try {
-            await fetch("/api/draw", {
+            // 즉시 로컬 상태 변경하여 중복 렌더링 호출 방지
+            currentStatus = "drawing"
+            setEvent({ ...eventData, status: "drawing" })
+            
+            const res = await fetch("/api/draw", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ eventId: id })
             })
-            currentStatus = "completed"
-            eventData.status = "completed"
+
+            if (res.ok || res.status === 400) {
+               // 정상 처리되었거나 이미 누군가에 의해 drawing/completed 된 경우
+               currentStatus = "completed"
+               eventData.status = "completed"
+               setEvent({ ...eventData, status: "completed" })
+            }
           } catch (e) {
             console.error("Auto draw failed:", e)
           }
+        } else if (currentStatus === "drawing") {
+          // 누군가 현재 추첨 중이라면 2초 후 페이지를 자동 새로고침하여 결과를 확인하도록 함
+          setTimeout(() => {
+            window.location.reload()
+          }, 2000)
         }
         
         setEvent(eventData)
@@ -116,10 +131,17 @@ export default function EventDetailPage() {
         if (myParticipation) {
           setIsParticipated(true)
           setIsWinner(myParticipation.is_winner)
+          
+          // 만약 이미 종료된 이벤트이고 내가 당첨자라면 축하 폭죽 터뜨리기
+          if (currentStatus === "completed" && myParticipation.is_winner) {
+            triggerConfetti()
+          }
         }
 
         // 이벤트가 종료되었다면 당첨자 목록 가져오기
-        if (currentStatus === "completed") {
+        if (currentStatus === "completed" || currentStatus === "drawing") {
+          // 'drawing' 상태인 동안에는 UI에 로딩이나 이전 정보가 남아있을 수 있으므로
+          // 안전하게 completed로 간주하여 최신 상태를 폴링하거나 가져오려 시도함.
           if (myParticipation) {
             const { data: updatedMyPart } = await supabase
               .from("participants")
@@ -323,6 +345,88 @@ export default function EventDetailPage() {
     }
   }
 
+  const handleResetDraw = async () => {
+    if (!confirm("당첨 결과를 무효로 하고 다시 진행 상태로 변경하시겠습니까?")) return
+
+    try {
+      const res = await fetch("/api/draw", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: id })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "초기화 실패")
+      }
+
+      toast({
+        title: "초기화 완료",
+        description: "이벤트가 다시 진행 중 상태로 변경되었습니다.",
+      })
+
+      window.location.reload()
+    } catch (err: any) {
+      toast({
+        title: "오류 발생",
+        description: err.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const triggerConfetti = () => {
+    const duration = 3 * 1000
+    const animationEnd = Date.now() + duration
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now()
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval)
+      }
+
+      const particleCount = 50 * (timeLeft / duration)
+      // since particles fall down, start a bit higher than random
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.2), y: Math.random() - 0.2 } })
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.8), y: Math.random() - 0.2 } })
+    }, 250)
+  }
+
+  const handleTransferWin = async (targetUserId: string, targetNickname: string) => {
+    if (!confirm(`[${targetNickname}]님에게 당첨권을 양도하시겠습니까?\n양도 후에는 되돌릴 수 없습니다.`)) return
+
+    try {
+      const res = await fetch(`/api/events/${id}/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "양도 실패")
+      }
+
+      toast({
+        title: "양도 완료",
+        description: `${targetNickname}님에게 당첨권이 양도되었습니다.`,
+      })
+
+      // 페이지 새로고침하여 상태 업데이트
+      window.location.reload()
+    } catch (err: any) {
+      toast({
+        title: "오류 발생",
+        description: err.message,
+        variant: "destructive",
+      })
+    }
+  }
+
   if (isLoading) {
     return <div className="flex justify-center py-20">로딩 중...</div>
   }
@@ -428,7 +532,14 @@ export default function EventDetailPage() {
                   const user = participant.users
                   if (!user || !user.nickname) return null
                   return (
-                    <div key={idx} className="flex items-center gap-2 p-2.5 bg-muted/40 rounded-md border border-dashed border-muted-foreground/20">
+                    <div 
+                      key={idx} 
+                      className={`flex items-center gap-2 p-2.5 rounded-md border transition-colors ${
+                        participant.is_winner 
+                          ? 'bg-yellow-50 border-yellow-200 shadow-sm' 
+                          : 'bg-muted/40 border-dashed border-muted-foreground/20'
+                      }`}
+                    >
                       <Avatar className="h-7 w-7">
                         <AvatarImage src={user.profile_image_url || ""} alt={user.nickname || ""} />
                         <AvatarFallback className="bg-muted/60 text-muted-foreground text-xs font-bold">
@@ -440,6 +551,16 @@ export default function EventDetailPage() {
                         <span className="text-[10px] font-bold bg-blue-100 text-lig px-1.5 py-0.5 rounded border border-blue-200">
                           출장자
                         </span>
+                      )}
+                      {/* 내가 당첨자이고, 대상이 미당첨자일 때 양도 버튼 표시 */}
+                      {isCompleted && isWinner && !participant.is_winner && (
+                        <button
+                          onClick={() => handleTransferWin(user.id, user.nickname)}
+                          className="ml-auto p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
+                          title="당첨권 양도하기"
+                        >
+                          <Send className="h-4 w-4" />
+                        </button>
                       )}
                     </div>
                   )
@@ -503,16 +624,30 @@ export default function EventDetailPage() {
               )}
             </Button>
 
-            {(user?.id === "system" || user?.id === event?.creator_id) && !isCompleted && (
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="h-12 w-12 border-orange-500 text-orange-600 hover:bg-orange-50 shrink-0"
-                onClick={handleForceComplete}
-                title="즉시 종료 및 추첨"
-              >
-                <Zap className="h-5 w-5 fill-orange-600" />
-              </Button>
+            {(user?.id === "system" || user?.id === event?.creator_id) && (
+              <>
+                {isCompleted ? (
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="h-12 w-12 border-blue-400 text-blue-500 hover:bg-blue-50 shrink-0"
+                    onClick={handleResetDraw}
+                    title="추첨 초기화"
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="h-12 w-12 border-orange-500 text-orange-600 hover:bg-orange-50 shrink-0"
+                    onClick={handleForceComplete}
+                    title="즉시 종료 및 추첨"
+                  >
+                    <Zap className="h-5 w-5 fill-orange-600" />
+                  </Button>
+                )}
+              </>
             )}
 
             {(user?.id === "system" || user?.id === event?.creator_id) && (

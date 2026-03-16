@@ -120,7 +120,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button
-              className="w-full"
+              className="w-full bg-lig hover:bg-lig/90 text-white border-none font-bold"
               type="submit"
               disabled={isLoading || !userId || !password || (!isLoginMode && !nickname)}
             >
