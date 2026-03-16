@@ -593,10 +593,10 @@ export default function EventDetailPage() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <div className="flex gap-3 w-full">
             {!isCompleted && !isParticipated && (
               <Button 
-                className="w-full sm:flex-1 h-12 text-lg font-bold shadow-md active:scale-95 transition-transform bg-lig hover:bg-lig/90 text-white border-none" 
+                className="flex-1 h-12 text-lg font-bold shadow-md active:scale-95 transition-transform bg-lig hover:bg-lig/90 text-white border-none" 
                 onClick={handleParticipate}
               >
                 추첨 응모하기
@@ -605,27 +605,34 @@ export default function EventDetailPage() {
 
             {!isCompleted && isParticipated && (
               <Button 
-                className="w-full sm:flex-1 h-12 text-lg font-bold shadow-md active:scale-95 transition-transform bg-red-600 hover:bg-red-700 text-white border-none" 
+                className="flex-1 h-12 text-lg font-bold shadow-md active:scale-95 transition-transform bg-red-600 hover:bg-red-700 text-white border-none" 
                 onClick={handleCancelParticipate}
               >
                 응모 취소하기
               </Button>
             )}
+
+            {isCompleted && (
+               <div className="flex-1 h-12 flex items-center justify-center border rounded-lg bg-muted/20 text-muted-foreground font-bold">
+                 추첨 종료됨
+               </div>
+            )}
             
             <Button 
               variant="outline" 
-              className="flex-1 h-12 text-lg"
+              className="h-12 px-4"
               onClick={handleShare}
+              title="공유하기"
             >
               {typeof navigator !== "undefined" && (navigator as any).share ? (
-                <><Share2 className="mr-2 h-5 w-5" /> 공유하기</>
+                <Share2 className="h-5 w-5" />
               ) : (
-                <><Copy className="mr-2 h-5 w-5" /> 링크 복사</>
+                <Copy className="h-5 w-5" />
               )}
             </Button>
 
             {(user?.id === "system" || user?.id === event?.creator_id) && (
-              <>
+              <div className="flex gap-2">
                 {isCompleted ? (
                   <Button 
                     variant="outline" 
@@ -642,24 +649,22 @@ export default function EventDetailPage() {
                     size="icon"
                     className="h-12 w-12 border-orange-500 text-orange-600 hover:bg-orange-50 shrink-0"
                     onClick={handleForceComplete}
-                    title="즉시 종료 및 추첨"
+                    title="즉시 종료"
                   >
                     <Zap className="h-5 w-5 fill-orange-600" />
                   </Button>
                 )}
-              </>
-            )}
 
-            {(user?.id === "system" || user?.id === event?.creator_id) && (
-              <Button 
-                variant="destructive" 
-                size="icon"
-                className="h-12 w-12 bg-red-500 hover:bg-red-600 shrink-0"
-                onClick={handleDelete}
-                title="이벤트 삭제"
-              >
-                <Trash2 className="h-5 w-5 text-white" />
-              </Button>
+                <Button 
+                  variant="destructive" 
+                  size="icon"
+                  className="h-12 w-12 bg-red-500 hover:bg-red-600 shrink-0"
+                  onClick={handleDelete}
+                  title="이벤트 삭제"
+                >
+                  <Trash2 className="h-5 w-5 text-white" />
+                </Button>
+              </div>
             )}
           </div>
         </CardFooter>
