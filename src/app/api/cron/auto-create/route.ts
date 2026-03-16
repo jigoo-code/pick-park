@@ -36,8 +36,8 @@ export async function GET(request: Request) {
     const dayName = format(targetDate, "EEEEEE", { locale: ko }) // '월', '화' 등
     const title = `${dateStr} (${dayName}) 주차권 추첨`
 
-    // 3. 종료 날짜 설정 (목표 날짜 오후 1시)
-    const endAtDate = setMilliseconds(setSeconds(setMinutes(setHours(targetDate, 13), 0), 0), 0)
+    // 3. 종료 날짜 설정 (목표 날짜 KST 오후 1시 = UTC 오전 4시)
+    const endAtDate = setMilliseconds(setSeconds(setMinutes(setHours(targetDate, 4), 0), 0), 0)
     const endAtIsoString = endAtDate.toISOString()
 
     const supabaseAdmin = createAdminClient()
@@ -47,11 +47,11 @@ export async function GET(request: Request) {
       .from("raffle_events")
       .insert({
         title,
-        description: `${dateStr} (${dayName}) 주차신청 자동 추첨 이벤트입니다.`,
+        description: `${dateStr} (${dayName}) 주차권 자동 추첨 이벤트입니다.`,
         end_at: endAtIsoString,
         winner_count: 2,
         status: "active",
-        items: [{ id: "1", name: "주차신청" }],
+        items: [{ id: "1", name: "주차권" }],
         creator_id: "system"
       })
       .select()

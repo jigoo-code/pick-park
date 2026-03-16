@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { Share2, Copy, Users, Calendar, Trophy, User } from "lucide-react"
+import { Share2, Copy, Users, Calendar, Trophy, User, Trash2, Zap } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -24,6 +24,7 @@ interface EventData {
 export default function EventDetailPage() {
   const params = useParams()
   const id = params?.id as string
+  const [user, setUser] = useState<any>(null)
   const [event, setEvent] = useState<EventData | null>(null)
   const [participantCount, setParticipantCount] = useState(0)
   const [isParticipated, setIsParticipated] = useState(false)
@@ -46,7 +47,8 @@ export default function EventDetailPage() {
           router.push("/login")
           return
         }
-        const { user } = await sessionRes.json()
+        const { user: sessionUser } = await sessionRes.json()
+        setUser(sessionUser)
 
         // 모든 응모자 리스트 가져오기 (이벤트 상세 정보보다 먼저 로드)
         const { data: participantsData, error: participantsFetchError } = await supabase
@@ -108,7 +110,7 @@ export default function EventDetailPage() {
           .from("participants")
           .select("is_winner")
           .eq("event_id", id)
-          .eq("user_id", user.id)
+          .eq("user_id", sessionUser.id)
           .maybeSingle()
 
         if (myParticipation) {
@@ -123,7 +125,7 @@ export default function EventDetailPage() {
               .from("participants")
               .select("is_winner")
               .eq("event_id", id)
-              .eq("user_id", user.id)
+              .eq("user_id", sessionUser.id)
               .maybeSingle()
             if (updatedMyPart) {
               setIsWinner(updatedMyPart.is_winner)
@@ -258,6 +260,65 @@ export default function EventDetailPage() {
       toast({
         title: "링크 복사 완료",
         description: "클립보드에 추첨 링크가 복사되었습니다.",
+      })
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm("정말로 이 이벤트를 삭제하시겠습니까? 관련 데이터가 모두 삭제됩니다.")) return
+
+    try {
+      const res = await fetch(`/api/events/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "삭제 실패")
+      }
+
+      toast({
+        title: "삭제 완료",
+        description: "이벤트가 성공적으로 삭제되었습니다.",
+      })
+
+      router.push("/")
+    } catch (err: any) {
+      toast({
+        title: "삭제 오류",
+        description: err.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleForceComplete = async () => {
+    if (!confirm("종료 시간과 상관없이 지금 즉시 추첨을 진행하고 종료하시겠습니까?")) return
+
+    try {
+      const res = await fetch("/api/draw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: id })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "추첨 실패")
+      }
+
+      toast({
+        title: "추첨 완료",
+        description: "이벤트가 즉시 종료되었으며 당첨자가 선정되었습니다.",
+      })
+
+      // 페이지 새로고침하여 상태 업데이트
+      window.location.reload()
+    } catch (err: any) {
+      toast({
+        title: "오류 발생",
+        description: err.message,
+        variant: "destructive",
       })
     }
   }
@@ -432,7 +493,7 @@ export default function EventDetailPage() {
             
             <Button 
               variant="outline" 
-              className="w-full sm:flex-1 h-12 text-lg"
+              className="flex-1 h-12 text-lg"
               onClick={handleShare}
             >
               {typeof navigator !== "undefined" && (navigator as any).share ? (
@@ -441,6 +502,30 @@ export default function EventDetailPage() {
                 <><Copy className="mr-2 h-5 w-5" /> 링크 복사</>
               )}
             </Button>
+
+            {(user?.id === "system" || user?.id === event?.creator_id) && !isCompleted && (
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="h-12 w-12 border-orange-500 text-orange-600 hover:bg-orange-50 shrink-0"
+                onClick={handleForceComplete}
+                title="즉시 종료 및 추첨"
+              >
+                <Zap className="h-5 w-5 fill-orange-600" />
+              </Button>
+            )}
+
+            {(user?.id === "system" || user?.id === event?.creator_id) && (
+              <Button 
+                variant="destructive" 
+                size="icon"
+                className="h-12 w-12 bg-red-500 hover:bg-red-600 shrink-0"
+                onClick={handleDelete}
+                title="이벤트 삭제"
+              >
+                <Trash2 className="h-5 w-5 text-white" />
+              </Button>
+            )}
           </div>
         </CardFooter>
       </Card>
