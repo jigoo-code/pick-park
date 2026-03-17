@@ -5,10 +5,11 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("custom_session")?.value
   const user = sessionCookie ? JSON.parse(sessionCookie) : null
 
-  // 로그인 페이지 등 인증이 필요 없는 경로
+  // 로그인 페이지 및 Cron API 등 인증이 필요 없는 경로
   const isAuthPage = request.nextUrl.pathname.startsWith("/login")
+  const isCronPath = request.nextUrl.pathname.startsWith("/api/cron")
 
-  if (!user && !isAuthPage) {
+  if (!user && !isAuthPage && !isCronPath) {
     // 인증되지 않은 사용자가 보호된 페이지에 접근할 때 로그인으로 리다이렉트
     return NextResponse.redirect(new URL("/login", request.url))
   }
